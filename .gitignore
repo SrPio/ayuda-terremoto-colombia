@@ -27,6 +27,7 @@ supabase/.branches
 # `npx skills add ...` (ver README).
 .agents
 .claude
+CLAUDE.md
 
 # Editores
 .vscode/*
