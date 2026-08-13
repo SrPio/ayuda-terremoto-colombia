@@ -1,0 +1,80 @@
+name: 📍 Agregar un punto de acopio
+description: Reportar un punto que no aparece en la aplicación
+title: '[Punto] '
+labels: ['datos', 'punto nuevo']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Más rápido desde la app:** puedes agregarlo directamente en
+        [/agregar](https://ayuda-terremoto-colombia.vercel.app/agregar) sin crear cuenta.
+        Usa este formulario si prefieres GitHub o si vas a aportar varios puntos a la vez.
+
+  - type: input
+    id: nombre
+    attributes:
+      label: Nombre del punto
+      description: Como lo conoce la gente
+      placeholder: Coliseo Miguel Happy Lora
+    validations:
+      required: true
+
+  - type: input
+    id: ubicacion
+    attributes:
+      label: Ciudad y departamento
+      placeholder: Montería, Córdoba
+    validations:
+      required: true
+
+  - type: input
+    id: direccion
+    attributes:
+      label: Dirección
+      description: Lo más exacta posible. Sin dirección el punto no puede salir en el mapa.
+      placeholder: Carrera 52 #30A-97
+
+  - type: input
+    id: contacto
+    attributes:
+      label: Teléfono, WhatsApp o correo
+      description: Necesitamos al menos uno para poder verificar el punto.
+    validations:
+      required: true
+
+  - type: textarea
+    id: necesidades
+    attributes:
+      label: Qué está recibiendo
+      description: |
+        Si conoces las cantidades, escríbelas. Si no, déjalo sin cifra: preferimos "cantidad por
+        confirmar" antes que un número inventado.
+      placeholder: |
+        - Agua: faltan 80 cajas, urgente
+        - Alimentos no perecederos: sin cifra
+        - Cobijas y colchonetas: sin cifra
+    validations:
+      required: true
+
+  - type: input
+    id: horario
+    attributes:
+      label: Horario
+      placeholder: Lunes a sábado, 8 a.m. a 6 p.m.
+
+  - type: dropdown
+    id: transporte
+    attributes:
+      label: ¿Puede recibir camión o carga grande?
+      options:
+        - 'No lo sé'
+        - 'Sí, tiene bodega o zona de descargue'
+        - 'No, solo paquetes de mano'
+
+  - type: input
+    id: fuente
+    attributes:
+      label: Fuente
+      description: Enlace a la publicación oficial, o "estuve ahí" si lo verificaste en persona.
+    validations:
+      required: true

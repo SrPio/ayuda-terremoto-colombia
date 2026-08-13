@@ -1,0 +1,53 @@
+name: ✏️ Corregir o retirar un punto
+description: Un punto publicado tiene datos mal, está saturado o ya cerró
+title: '[Corrección] '
+labels: ['datos', 'corrección']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Más rápido desde la app:** en la ficha de cada punto hay botones para reportar un problema,
+        proponer una corrección o pedir que se retire, sin crear cuenta.
+
+  - type: input
+    id: punto
+    attributes:
+      label: Punto afectado
+      description: Nombre o enlace de la ficha
+      placeholder: https://ayuda-terremoto-colombia.vercel.app/puntos/...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: motivo
+    attributes:
+      label: Qué pasa
+      options:
+        - 'El punto ya cerró'
+        - 'La información está incorrecta'
+        - 'Está saturado, no reciben más'
+        - 'Ya no necesitan lo que aparece'
+        - 'Está repetido con otro punto'
+        - 'Otro'
+    validations:
+      required: true
+
+  - type: textarea
+    id: correcto
+    attributes:
+      label: Cuál es el dato correcto
+      description: Escribe solo lo que cambia, con el valor correcto.
+      placeholder: |
+        Dirección correcta: Calle 49 #27A-85
+        Ya no reciben ropa usada
+    validations:
+      required: true
+
+  - type: textarea
+    id: como
+    attributes:
+      label: Cómo lo sabes
+      description: Si estuviste en el punto, dilo. Ayuda a decidir rápido.
+      placeholder: Fui el martes a las 3 p.m. y ya no estaban recibiendo.
+    validations:
+      required: true

@@ -1,0 +1,305 @@
+@import 'tailwindcss';
+
+/* ===========================================================================
+   Sistema de diseño — "tablero operativo"
+   ---------------------------------------------------------------------------
+   La referencia visual no es una campaña de donación: es un tablero de
+   logística de emergencia. Manifiestos de carga, etiquetas de inventario,
+   listas pegadas con cinta en la mesa de un punto de acopio.
+
+   Color: derivado de la bandera de Colombia, pero con oficio. El azul
+   profundo es el sustrato operativo; el saffron es la señal; el rojo NO
+   decora nunca, solo marca urgencia crítica. Así el color transporta
+   información en vez de ambientar.
+
+   Tipografía: Archivo (display, ancho variable) para titulares con autoridad;
+   Inter Tight para lectura; IBM Plex Mono para TODO dato numérico. Las
+   cantidades son inventario, así que se leen como inventario: cifras
+   tabulares, versalitas, tracking abierto.
+   =========================================================================== */
+
+@theme {
+  /* Sustrato */
+  --color-ink: #0e1a2b;
+  --color-panel: #16263d;
+  --color-panel-alto: #1e3450;
+  --color-mineral: #edefea;
+  --color-paper: #f7f8f5;
+  --color-line: #cfd4cc;
+  --color-line-fuerte: #aab3a9;
+  --color-muted: #5b6672;
+  --color-muted-claro: #8b95a0;
+
+  /* Señal */
+  --color-signal: #f2b417;
+  --color-signal-oscuro: #c98f06;
+
+  /* Escala de urgencia — un solo gradiente de tono, de sereno a alarma */
+  --color-baja: #7a8794;
+  --color-media: #f2b417;
+  --color-alta: #de6b1f;
+  --color-critica: #c42b1c;
+
+  /* Estado cubierto / verificado */
+  --color-verificado: #2e7d6f;
+
+  /* Tipografía */
+  --font-display: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Inter Tight', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* Escala de tipo — salto grande entre display y cuerpo, sin pasos tibios */
+  --text-eyebrow: 0.6875rem;
+  --text-eyebrow--line-height: 1.1;
+  --text-dato: 0.8125rem;
+  --text-dato--line-height: 1.35;
+
+  /* Sombras: mínimas. Un tablero no flota, se apoya. */
+  --shadow-tabla: 0 1px 0 0 var(--color-line-fuerte);
+  --shadow-panel: 0 2px 14px -8px rgb(14 26 43 / 0.35);
+  --shadow-elevado: 0 12px 34px -18px rgb(14 26 43 / 0.45);
+
+  --radius-tag: 2px;
+
+  /* Animación: una sola curva para todo el producto */
+  --ease-tablero: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-mineral);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* Trama de fondo muy tenue: papel milimetrado de bitácora, no textura. */
+    background-image:
+      linear-gradient(to right, rgb(14 26 43 / 0.035) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(14 26 43 / 0.035) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.04;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Foco visible siempre, y con el color de señal para que no se pierda
+     sobre el azul profundo ni sobre el mineral. */
+  :focus-visible {
+    outline: 2px solid var(--color-signal);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background-color: var(--color-signal);
+    color: var(--color-ink);
+  }
+
+  /* Las cifras nunca bailan al actualizarse en vivo. */
+  [data-cifra],
+  .font-mono,
+  input[type='number'] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+}
+
+@layer components {
+  /* --- Etiqueta de dato: la voz utilitaria del tablero -------------------- */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: var(--text-eyebrow);
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .eyebrow-claro {
+    color: var(--color-muted-claro);
+  }
+
+  /* --- Superficie de tablero --------------------------------------------- */
+  .panel {
+    background-color: var(--color-paper);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-tag);
+  }
+
+  /* --- ELEMENTO FIRMA: línea de manifiesto -------------------------------
+     Una fila que se lee como renglón de manifiesto de carga:
+     borde-etiqueta a la izquierda con el color de urgencia, datos en mono,
+     y una regla de progreso al pie con lo cubierto vs. lo solicitado.
+     Se reutiliza en el home, el listado y los resultados del asistente. */
+  .manifiesto {
+    position: relative;
+    padding-left: 0.875rem;
+  }
+
+  .manifiesto::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    border-radius: 1px;
+    background-color: var(--urgencia, var(--color-baja));
+  }
+
+  /* Regla de progreso: fondo = solicitado, relleno = cubierto. */
+  .regla-progreso {
+    height: 3px;
+    background-color: var(--color-line);
+    overflow: hidden;
+  }
+
+  .regla-progreso > span {
+    display: block;
+    height: 100%;
+    background-color: var(--urgencia, var(--color-verificado));
+    transform-origin: left center;
+  }
+
+  /* --- Cinta diagonal para avisos de verificación ------------------------- */
+  .cinta-aviso {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      rgb(242 180 23 / 0.16) 0 8px,
+      transparent 8px 16px
+    );
+  }
+}
+
+@layer utilities {
+  /* Ancho de columna del tablero: consistente en toda la app. */
+  .contenedor {
+    width: 100%;
+    max-width: 78rem;
+    margin-inline: auto;
+    padding-inline: 1.125rem;
+  }
+
+  @media (min-width: 768px) {
+    .contenedor {
+      padding-inline: 2rem;
+    }
+  }
+
+  /* Archivo tiene eje de ancho: los titulares se abren, los datos se cierran. */
+  .display-ancho {
+    font-family: var(--font-display);
+    font-variation-settings: 'wdth' 112;
+  }
+
+  .display-estrecho {
+    font-family: var(--font-display);
+    font-variation-settings: 'wdth' 92;
+  }
+
+  .subrayado-signal {
+    text-decoration: underline;
+    text-decoration-color: var(--color-signal);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+  }
+}
+
+/* ===========================================================================
+   Movimiento
+   Todas las animaciones son transform/opacity y se apagan por completo si la
+   persona pidió menos movimiento en su sistema. En una emergencia nadie debe
+   pelear con la interfaz.
+   =========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Leaflet: se le quita el look de widget para que pertenezca al tablero. */
+.leaflet-container {
+  font-family: var(--font-body);
+  background-color: #dfe3dd;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: var(--radius-tag);
+  box-shadow: var(--shadow-elevado);
+  padding: 0;
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  width: 15rem !important;
+}
+
+.leaflet-popup-tip {
+  box-shadow: none;
+}
+
+.leaflet-bar a,
+.leaflet-control-attribution {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+}
+
+.marcador-acopio {
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 2px solid var(--color-paper);
+  box-shadow: 0 2px 8px -2px rgb(14 26 43 / 0.5);
+  font-size: 0.75rem;
+}
+
+.cluster-acopio {
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background-color: var(--color-ink);
+  color: var(--color-paper);
+  border: 2px solid var(--color-paper);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: 0 2px 10px -2px rgb(14 26 43 / 0.5);
+}

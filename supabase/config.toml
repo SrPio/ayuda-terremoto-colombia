@@ -1,0 +1,35 @@
+project_id = "ayuda-terremoto-colombia"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[studio]
+enabled = true
+port = 54323
+
+[realtime]
+enabled = true
+
+# Esta versión del proyecto no tiene cuentas de usuario. Auth queda apagado
+# para no exponer endpoints que nadie usa.
+[auth]
+enabled = false
+
+# Las dos funciones son públicas a nivel de transporte porque no hay JWT que
+# verificar: no hay login. La autorización real vive dentro de cada función.
+#   submit   → validación + captcha + límite por IP, escribe siempre como pending
+#   moderate → exige la cabecera x-moderator-key contra el secreto MODERATOR_KEY
+[functions.submit]
+verify_jwt = false
+
+[functions.moderate]
+verify_jwt = false
