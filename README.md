@@ -2,6 +2,9 @@
 
 **Dónde llevar las donaciones, y qué se necesita en cada punto.**
 
+### → [ayuda-terremoto-colombia.vercel.app](https://ayuda-terremoto-colombia.vercel.app)
+
+
 Plataforma web abierta que centraliza los puntos de acopio habilitados en Colombia tras el
 terremoto de magnitud 7,4 del **10 de agosto de 2026**, con epicentro en San José del Palmar
 (Chocó), y que cruza lo que cada persona tiene para donar con las necesidades reales de cada punto.
