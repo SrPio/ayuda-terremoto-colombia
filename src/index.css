@@ -255,8 +255,13 @@
   }
 }
 
-/* Leaflet: se le quita el look de widget para que pertenezca al tablero. */
+/* Leaflet: se le quita el look de widget para que pertenezca al tablero.
+   isolation: isolate crea un contexto de apilamiento propio, así los paneles
+   y controles internos (z-index hasta 1000) no se escapan a competir con el
+   header fijo (z-50) del resto de la página. */
 .leaflet-container {
+  position: relative;
+  isolation: isolate;
   font-family: var(--font-body);
   background-color: #dfe3dd;
 }
