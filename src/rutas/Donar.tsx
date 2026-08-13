@@ -27,12 +27,17 @@ import {
   SelloFrescura,
   SinResultados,
 } from '@/componentes/ui'
-import { URGENCIA_COLOR, cifra } from '@/lib/formato'
+import { URGENCIA_COLOR, URGENCIA_PESO, cifra } from '@/lib/formato'
 import { usePasos } from '@/lib/movimiento'
-import { useCategorias, useCoincidencias, useDepartamentos } from '@/lib/consultas'
+import {
+  useCategorias,
+  useCoincidenciasMultiples,
+  useDepartamentos,
+  type ItemBusquedaMatch,
+} from '@/lib/consultas'
 import { camposTrampaIniciales, enviarAporte } from '@/lib/api'
 import { enlaceMapa, enlaceWhatsapp, mensajeCoordinacion } from '@/lib/whatsapp'
-import type { Coincidencia } from '@/lib/tipos'
+import type { Categoria, Coincidencia } from '@/lib/tipos'
 
 // ============================================================================
 // "¿Dónde llevo las donaciones?" — el asistente.
@@ -42,28 +47,62 @@ import type { Coincidencia } from '@/lib/tipos'
 // Una sola pregunta a la vez porque quien llega aquí ya tiene las cajas en el
 // carro y no quiere llenar un formulario.
 //
+// "Tengo algo" puede ser más de una cosa: quien lleva el carro cargado suele
+// traer agua Y alimentos Y cobijas al tiempo, así que el primer paso permite
+// elegir varias categorías, y el segundo pide la cantidad y unidad de CADA
+// una por separado (100 cajas de agua no es lo mismo que 20 kits de aseo).
+//
 // El resultado no es una lista de sitios: es una necesidad concreta con nombre,
-// cantidad faltante y un botón que abre WhatsApp con el mensaje escrito.
+// cantidad faltante y un botón que abre WhatsApp con el mensaje escrito — una
+// tarjeta por cada combinación de categoría elegida y punto que la necesita.
 // ============================================================================
 
 const PASOS = ['¿Qué tienes?', '¿Cuánto?', '¿Dónde estás?', '¿Transporte?'] as const
 
-interface Estado {
+/** Una categoría elegida, con su propia cantidad y unidad. */
+interface ItemDonacion {
   categoria: string
   cantidad: string
   unidad: string
+}
+
+interface Estado {
+  items: ItemDonacion[]
   departamento: string
   ciudad: string
   transporte: boolean | null
 }
 
 const INICIAL: Estado = {
-  categoria: '',
-  cantidad: '',
-  unidad: '',
+  items: [],
   departamento: '',
   ciudad: '',
   transporte: null,
+}
+
+/** "agua", "agua y aseo personal", "agua, aseo personal y cobijas". */
+function listarNombres(nombres: string[]): string {
+  if (nombres.length === 0) return ''
+  if (nombres.length === 1) return nombres[0]
+  return `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}`
+}
+
+/**
+ * Mismo criterio de orden que ya aplica `match_needs` dentro de cada
+ * categoría (urgencia → zona afectada → cercanía). Al combinar los resultados
+ * de varias categorías hay que reordenar el conjunto completo para que la
+ * lista final no quede agrupada por categoría sino por lo que de verdad urge.
+ */
+function compararCoincidencias(a: Coincidencia, b: Coincidencia): number {
+  const pesoUrgencia = URGENCIA_PESO[b.urgencia] - URGENCIA_PESO[a.urgencia]
+  if (pesoUrgencia !== 0) return pesoUrgencia
+
+  const afectada = Number(b.zona_afectada) - Number(a.zona_afectada)
+  if (afectada !== 0) return afectada
+
+  const distanciaA = a.distancia_km ?? Infinity
+  const distanciaB = b.distancia_km ?? Infinity
+  return distanciaA - distanciaB
 }
 
 export default function Donar() {
@@ -80,31 +119,68 @@ export default function Donar() {
     document.title = 'Tengo algo para donar — Ayuda Terremoto Colombia'
   }, [])
 
-  const categoria = useMemo(
-    () => (categorias ?? []).find((c) => c.slug === estado.categoria),
-    [categorias, estado.categoria],
+  const categoriasPorSlug = useMemo(
+    () => new Map((categorias ?? []).map((c) => [c.slug, c])),
+    [categorias],
+  )
+  const itemPorCategoria = useMemo(
+    () => new Map(estado.items.map((i) => [i.categoria, i])),
+    [estado.items],
   )
   const departamento = useMemo(
     () => (departamentos ?? []).find((d) => d.code === estado.departamento),
     [departamentos, estado.departamento],
   )
 
-  const parametros = buscando
-    ? {
-        categoria: estado.categoria,
-        cantidad: estado.cantidad ? Number(estado.cantidad) : null,
-        departamento: estado.departamento || null,
-        lat: departamento?.lat ?? null,
-        lng: departamento?.lng ?? null,
-        transporte: estado.transporte === true,
+  /** Agrega o quita una categoría de la selección, sin perder lo ya escrito. */
+  const alternarCategoria = (cat: Categoria) => {
+    setEstado((s) => {
+      const yaElegida = s.items.some((i) => i.categoria === cat.slug)
+      return {
+        ...s,
+        items: yaElegida
+          ? s.items.filter((i) => i.categoria !== cat.slug)
+          : [...s.items, { categoria: cat.slug, cantidad: '', unidad: cat.unidad_sugerida }],
       }
-    : null
+    })
+  }
 
-  const { data: coincidencias, isPending, isError } = useCoincidencias(parametros, buscando)
+  const actualizarItem = (slug: string, campo: 'cantidad' | 'unidad', valor: string) => {
+    setEstado((s) => ({
+      ...s,
+      items: s.items.map((i) => (i.categoria === slug ? { ...i, [campo]: valor } : i)),
+    }))
+  }
+
+  const itemsParaBuscar: ItemBusquedaMatch[] = estado.items.map((i) => ({
+    categoria: i.categoria,
+    cantidad: i.cantidad ? Number(i.cantidad) : null,
+    unidad: i.unidad,
+  }))
+
+  const {
+    coincidencias: coincidenciasCrudas,
+    isPending,
+    isError,
+  } = useCoincidenciasMultiples(
+    itemsParaBuscar,
+    {
+      departamento: estado.departamento || null,
+      lat: departamento?.lat ?? null,
+      lng: departamento?.lng ?? null,
+      transporte: estado.transporte === true,
+    },
+    buscando,
+  )
+
+  const coincidencias = useMemo(
+    () => coincidenciasCrudas.slice().sort(compararCoincidencias),
+    [coincidenciasCrudas],
+  )
 
   const puedeAvanzar = [
-    Boolean(estado.categoria),
-    estado.cantidad !== '' && Number(estado.cantidad) > 0,
+    estado.items.length > 0,
+    estado.items.length > 0 && estado.items.every((i) => i.cantidad !== '' && Number(i.cantidad) > 0),
     Boolean(estado.departamento) && estado.ciudad.trim().length > 1,
     estado.transporte !== null,
   ][paso]
@@ -179,18 +255,17 @@ export default function Donar() {
       </ol>
 
       {/* --- Resumen de lo elegido ---------------------------------------- */}
-      {(estado.categoria || estado.ciudad) && (
+      {(estado.items.length > 0 || estado.ciudad) && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          {categoria && (
-            <Insignia>
-              {categoria.emoji} {categoria.nombre}
-            </Insignia>
-          )}
-          {estado.cantidad && (
-            <Insignia>
-              {cifra(Number(estado.cantidad))} {estado.unidad || categoria?.unidad_sugerida}
-            </Insignia>
-          )}
+          {estado.items.map((item) => {
+            const cat = categoriasPorSlug.get(item.categoria)
+            return (
+              <Insignia key={item.categoria}>
+                {cat?.emoji} {cat?.nombre}
+                {item.cantidad && ` · ${cifra(Number(item.cantidad))} ${item.unidad || cat?.unidad_sugerida}`}
+              </Insignia>
+            )
+          })}
           {estado.ciudad && <Insignia>{estado.ciudad}</Insignia>}
           {estado.transporte !== null && (
             <Insignia tono={estado.transporte ? 'verificado' : 'aviso'}>
@@ -217,22 +292,17 @@ export default function Donar() {
                     ¿Qué tienes para donar?
                   </legend>
                   <p className="text-muted mt-2 text-[0.9375rem]">
-                    Elige la categoría que mejor describa lo que vas a llevar.
+                    Elige una o varias categorías — puedes combinar, por ejemplo, agua y alimentos
+                    no perecederos.
                   </p>
 
                   <div className="mt-6 grid gap-2.5 sm:grid-cols-2">
                     {(categorias ?? []).map((c) => {
-                      const activo = estado.categoria === c.slug
+                      const activo = estado.items.some((i) => i.categoria === c.slug)
                       return (
                         <button
                           key={c.slug}
-                          onClick={() =>
-                            setEstado((s) => ({
-                              ...s,
-                              categoria: c.slug,
-                              unidad: s.categoria === c.slug ? s.unidad : c.unidad_sugerida,
-                            }))
-                          }
+                          onClick={() => alternarCategoria(c)}
                           aria-pressed={activo}
                           className={`flex items-start gap-3 rounded-[2px] border p-3.5 text-left transition-colors ${
                             activo
@@ -270,55 +340,78 @@ export default function Donar() {
               {paso === 1 && (
                 <div>
                   <h2 className="display-ancho text-[1.5rem] leading-tight font-bold">
-                    ¿Cuánto tienes?
+                    {estado.items.length > 1 ? '¿Cuánto tienes de cada cosa?' : '¿Cuánto tienes?'}
                   </h2>
                   <p className="text-muted mt-2 text-[0.9375rem]">
                     Un número aproximado sirve. Es lo que permite saber si tu donación cubre una
                     necesidad completa.
                   </p>
 
-                  <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end">
-                    <div className="sm:w-40">
-                      <Campo
-                        id="cantidad"
-                        etiqueta="Cantidad"
-                        requerido
-                        type="number"
-                        inputMode="decimal"
-                        min={1}
-                        step="any"
-                        autoFocus
-                        value={estado.cantidad}
-                        onChange={(e) => setEstado((s) => ({ ...s, cantidad: e.target.value }))}
-                        placeholder="100"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <Campo
-                        id="unidad"
-                        etiqueta="Unidad"
-                        requerido
-                        value={estado.unidad}
-                        onChange={(e) => setEstado((s) => ({ ...s, unidad: e.target.value }))}
-                        placeholder={categoria?.unidad_sugerida ?? 'cajas'}
-                        list="unidades"
-                      />
-                      <datalist id="unidades">
-                        {['cajas', 'bultos', 'unidades', 'paquetes', 'bolsas', 'kits', 'litros', 'kilos'].map(
-                          (u) => (
-                            <option key={u} value={u} />
-                          ),
-                        )}
-                      </datalist>
-                    </div>
-                  </div>
+                  <div className="mt-6 flex flex-col gap-5">
+                    {estado.items.map((item, i) => {
+                      const cat = categoriasPorSlug.get(item.categoria)
+                      return (
+                        <div
+                          key={item.categoria}
+                          className="border-line border-t pt-5 first:border-0 first:pt-0"
+                        >
+                          {estado.items.length > 1 && (
+                            <p className="mb-2 flex items-center gap-2 font-medium">
+                              <span aria-hidden="true">{cat?.emoji}</span>
+                              {cat?.nombre}
+                            </p>
+                          )}
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                            <div className="sm:w-40">
+                              <Campo
+                                id={`cantidad-${item.categoria}`}
+                                etiqueta="Cantidad"
+                                requerido
+                                type="number"
+                                inputMode="decimal"
+                                min={1}
+                                step="any"
+                                autoFocus={i === 0}
+                                value={item.cantidad}
+                                onChange={(e) =>
+                                  actualizarItem(item.categoria, 'cantidad', e.target.value)
+                                }
+                                placeholder="100"
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <Campo
+                                id={`unidad-${item.categoria}`}
+                                etiqueta="Unidad"
+                                requerido
+                                value={item.unidad}
+                                onChange={(e) =>
+                                  actualizarItem(item.categoria, 'unidad', e.target.value)
+                                }
+                                placeholder={cat?.unidad_sugerida ?? 'cajas'}
+                                list="unidades"
+                              />
+                            </div>
+                          </div>
 
-                  {categoria && estado.cantidad && Number(estado.cantidad) > 0 && (
-                    <p className="text-muted mt-4 font-mono text-[0.8125rem]">
-                      {cifra(Number(estado.cantidad))} {estado.unidad || categoria.unidad_sugerida} de{' '}
-                      {categoria.nombre.toLowerCase()}
-                    </p>
-                  )}
+                          {item.cantidad && Number(item.cantidad) > 0 && (
+                            <p className="text-muted mt-3 font-mono text-[0.8125rem]">
+                              {cifra(Number(item.cantidad))} {item.unidad || cat?.unidad_sugerida} de{' '}
+                              {cat?.nombre.toLowerCase()}
+                            </p>
+                          )}
+                        </div>
+                      )
+                    })}
+
+                    <datalist id="unidades">
+                      {['cajas', 'bultos', 'unidades', 'paquetes', 'bolsas', 'kits', 'litros', 'kilos'].map(
+                        (u) => (
+                          <option key={u} value={u} />
+                        ),
+                      )}
+                    </datalist>
+                  </div>
                 </div>
               )}
 
@@ -419,7 +512,7 @@ export default function Donar() {
             </motion.div>
           </AnimatePresence>
 
-          <div className="border-line mt-8 flex items-center justify-between border-t pt-5">
+          <div className="border-line bg-mineral relative z-10 mt-8 flex items-center justify-between border-t pt-5">
             <Boton variante="fantasma" onClick={retroceder} disabled={paso === 0}>
               <ArrowLeft aria-hidden="true" className="h-4 w-4" />
               Atrás
@@ -450,10 +543,15 @@ export default function Donar() {
             </Aviso>
           )}
 
-          {coincidencias && coincidencias.length === 0 && (
+          {!isPending && !isError && coincidencias.length === 0 && (
             <SinResultados titulo="No hay una necesidad abierta que encaje">
               <p>
-                Nadie tiene registrada una necesidad de {categoria?.nombre.toLowerCase()}
+                Nadie tiene registrada una necesidad de{' '}
+                {listarNombres(
+                  estado.items.map(
+                    (i) => categoriasPorSlug.get(i.categoria)?.nombre.toLowerCase() ?? i.categoria,
+                  ),
+                )}
                 {estado.transporte === false ? ' cerca de ti' : ''} en este momento. Eso puede
                 significar que ya está cubierta, o que el punto no ha reportado la cifra.
               </p>
@@ -467,7 +565,7 @@ export default function Donar() {
             </SinResultados>
           )}
 
-          {coincidencias && coincidencias.length > 0 && (
+          {!isPending && !isError && coincidencias.length > 0 && (
             <>
               <div className="flex flex-wrap items-baseline justify-between gap-3">
                 <h2 className="display-ancho text-[1.5rem] leading-tight font-bold">
@@ -486,28 +584,34 @@ export default function Donar() {
               </p>
 
               <div className="mt-6 flex flex-col gap-4">
-                {coincidencias.map((m, i) => (
-                  <TarjetaCoincidencia
-                    key={m.need_id}
-                    coincidencia={m}
-                    destacada={i === 0}
-                    oferta={{
-                      categoriaNombre: categoria?.nombre ?? m.categoria_nombre,
-                      cantidad: Number(estado.cantidad),
-                      unidad: estado.unidad || categoria?.unidad_sugerida || 'unidades',
-                      ciudadOrigen: estado.ciudad,
-                      transporte: estado.transporte === true,
-                    }}
-                    datosOferta={{
-                      categoria: estado.categoria,
-                      cantidad: Number(estado.cantidad),
-                      unidad: estado.unidad || categoria?.unidad_sugerida || 'unidades',
-                      department_code: estado.departamento,
-                      ciudad: estado.ciudad,
-                      transporte_disponible: estado.transporte === true,
-                    }}
-                  />
-                ))}
+                {coincidencias.map((m, i) => {
+                  const item = itemPorCategoria.get(m.categoria)
+                  const cat = categoriasPorSlug.get(m.categoria)
+                  const cantidadOfrecida = Number(item?.cantidad ?? 0)
+                  const unidadOfrecida = item?.unidad || cat?.unidad_sugerida || 'unidades'
+                  return (
+                    <TarjetaCoincidencia
+                      key={m.need_id}
+                      coincidencia={m}
+                      destacada={i === 0}
+                      oferta={{
+                        categoriaNombre: cat?.nombre ?? m.categoria_nombre,
+                        cantidad: cantidadOfrecida,
+                        unidad: unidadOfrecida,
+                        ciudadOrigen: estado.ciudad,
+                        transporte: estado.transporte === true,
+                      }}
+                      datosOferta={{
+                        categoria: m.categoria,
+                        cantidad: cantidadOfrecida,
+                        unidad: unidadOfrecida,
+                        department_code: estado.departamento,
+                        ciudad: estado.ciudad,
+                        transporte_disponible: estado.transporte === true,
+                      }}
+                    />
+                  )
+                })}
               </div>
             </>
           )}

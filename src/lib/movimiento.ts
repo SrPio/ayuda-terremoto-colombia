@@ -65,7 +65,13 @@ export function usePasos(direccion: number) {
   return {
     initial: { opacity: 0, x: direccion * desplazamiento },
     animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: direccion * -desplazamiento },
+    // pointerEvents: 'none' en la salida es la parte que importa: con
+    // popLayout el paso que se va queda con position:absolute y, mientras se
+    // desvanece, opacity<1 le crea su propio contexto de apilamiento por
+    // encima del contenido en flujo normal (aunque esté antes en el DOM que
+    // los botones Atrás/Continuar). Sin esto, ese paso fantasma tapaba los
+    // clics sobre esos botones durante toda la transición.
+    exit: { opacity: 0, x: direccion * -desplazamiento, pointerEvents: 'none' },
     transition: SUAVE,
   }
 }
