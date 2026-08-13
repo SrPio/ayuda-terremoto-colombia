@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Download, Github } from 'lucide-react'
 import { REPO_URL } from '@/componentes/Diseno'
+import { QueNoDonar } from '@/componentes/QueNoDonar'
 import { Aviso, Boton, Eyebrow } from '@/componentes/ui'
 import { SUPABASE_URL } from '@/lib/supabase'
 
@@ -62,6 +63,18 @@ export default function Acerca() {
             por confirmar" en lugar de estimar un número. Una cifra inventada haría que alguien
             cargue un camión con destino equivocado.
           </Aviso>
+        </div>
+      </section>
+
+      <section className="mt-12">
+        <h2 className="display-ancho text-[1.5rem] leading-tight">Qué donar y qué no</h2>
+        <p className="text-muted mt-3 leading-relaxed">
+          Cada punto publica su propia lista y esa es la que manda: lo primero es mirar la ficha del
+          punto al que vas. Pero hay cosas que ningún acopio puede usar, y llevarlas solo consume el
+          tiempo de quien está clasificando.
+        </p>
+        <div className="mt-5">
+          <QueNoDonar />
         </div>
       </section>
 

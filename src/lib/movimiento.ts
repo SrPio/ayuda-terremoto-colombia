@@ -48,19 +48,24 @@ export function useFila(): Variants {
   }
 }
 
-/** Pasos del asistente: entran por el lado hacia el que se avanza. */
-export function usePasos() {
+/**
+ * Pasos del asistente: entran por el lado hacia el que se avanza.
+ *
+ * Devuelve props directas (initial/animate/exit) en vez de variantes con
+ * función y `custom`. La versión con variantes dinámicas dejaba a
+ * `AnimatePresence mode="wait"` esperando un `onExitComplete` que nunca
+ * llegaba: el paso viejo se quedaba en pantalla con el estado ya avanzado, y el
+ * asistente se trababa después de la primera pregunta. Props planas no tienen
+ * ese problema y el código se lee mejor.
+ */
+export function usePasos(direccion: number) {
   const quieto = useReducedMotion()
+  const desplazamiento = quieto ? 0 : 36
+
   return {
-    inicial: (direccion: number) => ({
-      opacity: 0,
-      x: quieto ? 0 : direccion * 36,
-    }),
-    animar: { opacity: 1, x: 0, transition: SUAVE },
-    salir: (direccion: number) => ({
-      opacity: 0,
-      x: quieto ? 0 : direccion * -36,
-      transition: RAPIDO,
-    }),
+    initial: { opacity: 0, x: direccion * desplazamiento },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: direccion * -desplazamiento },
+    transition: SUAVE,
   }
 }

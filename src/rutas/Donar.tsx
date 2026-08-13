@@ -9,9 +9,11 @@ import {
   MessageCircle,
   Phone,
   RotateCcw,
+  Send,
   Truck,
 } from 'lucide-react'
 import { Manifiesto } from '@/componentes/Manifiesto'
+import { QueNoDonar } from '@/componentes/QueNoDonar'
 import { Turnstile } from '@/componentes/Turnstile'
 import { turnstileActivo } from '@/lib/config'
 import {
@@ -70,7 +72,7 @@ export default function Donar() {
   const [estado, setEstado] = useState<Estado>(INICIAL)
   const [buscando, setBuscando] = useState(false)
 
-  const variantes = usePasos()
+  const transicionPaso = usePasos(direccion)
   const { data: categorias } = useCategorias()
   const { data: departamentos } = useDepartamentos()
 
@@ -201,15 +203,14 @@ export default function Donar() {
       {/* --- Pasos --------------------------------------------------------- */}
       {!buscando && (
         <div className="relative mt-8 overflow-hidden">
-          <AnimatePresence mode="wait" custom={direccion} initial={false}>
-            <motion.div
-              key={paso}
-              custom={direccion}
-              variants={variantes}
-              initial="inicial"
-              animate="animar"
-              exit="salir"
-            >
+          {/* mode="popLayout" y no "wait": con "wait" el paso siguiente no se
+              monta hasta que termina la salida del anterior, así que cualquier
+              cosa que congele las animaciones —una pestaña en segundo plano, un
+              navegador que suspende requestAnimationFrame— deja el asistente
+              trabado a mitad de camino. Con popLayout el paso nuevo aparece de
+              inmediato y el viejo sale de la maquetación mientras se desvanece. */}
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.div key={paso} {...transicionPaso}>
               {paso === 0 && (
                 <fieldset>
                   <legend className="display-ancho text-[1.5rem] leading-tight font-bold">
@@ -256,6 +257,12 @@ export default function Donar() {
                         </button>
                       )
                     })}
+                  </div>
+
+                  {/* Se muestra en el primer paso a propósito: es cuando la
+                      persona todavía puede decidir no cargar el carro. */}
+                  <div className="mt-6">
+                    <QueNoDonar compacto />
                   </div>
                 </fieldset>
               )}
@@ -542,12 +549,14 @@ function TarjetaCoincidencia({
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [coordinada, setCoordinada] = useState(false)
+  const [contacto, setContacto] = useState('')
+  const [nombre, setNombre] = useState('')
 
   const mensaje = mensajeCoordinacion(m, oferta)
   const enlace = enlaceWhatsapp(m.whatsapp ?? m.telefono, mensaje)
 
   /**
-   * Registrar la oferta y abrir WhatsApp.
+   * Registra la oferta y, si el punto tiene WhatsApp, abre la conversación.
    *
    * El registro es útil pero no puede ser un obstáculo: si falla, igual se abre
    * WhatsApp. Lo importante es que la donación llegue, no que la base tenga la
@@ -559,7 +568,13 @@ function TarjetaCoincidencia({
     try {
       await enviarAporte(
         'oferta_donacion',
-        { ...datosOferta, matched_point_id: m.point_id },
+        {
+          ...datosOferta,
+          matched_point_id: m.point_id,
+          nombre_contacto: nombre || undefined,
+          telefono: contacto || undefined,
+          mensaje,
+        },
         { ...trampas, website: honeypot },
         token ?? undefined,
       )
@@ -653,8 +668,9 @@ function TarjetaCoincidencia({
         {coordinada && (
           <div className="mt-4">
             <Aviso tono="exito">
-              Registramos tu oferta. Si WhatsApp no se abrió, usa el botón otra vez o llama al
-              teléfono del punto.
+              {enlace
+                ? 'Registramos tu oferta. Si WhatsApp no se abrió, usa el botón otra vez o llama al teléfono del punto.'
+                : 'Registramos tu donación y tus datos de contacto. La moderación coordina la entrega con este punto y te escribe.'}
             </Aviso>
           </div>
         )}
@@ -674,6 +690,42 @@ function TarjetaCoincidencia({
           </div>
         )}
 
+        {/* Camino sin teléfono.
+            Ninguna de las fuentes oficiales publica el contacto de los puntos,
+            así que este es el caso mayoritario, no la excepción. Un aviso que
+            dijera "no hay WhatsApp" y nada más sería un callejón sin salida en
+            la pantalla más importante del producto. En cambio se registra la
+            oferta con el contacto de quien dona: la moderación ve que hay 100
+            cajas de agua esperando destino y puede cerrar el círculo llamando
+            al punto. */}
+        {!enlace && !coordinada && (
+          <div className="border-line mt-4 border-t pt-4">
+            <p className="text-[0.9375rem] leading-relaxed">
+              Este punto todavía no tiene teléfono publicado. Deja tus datos y la moderación
+              coordina la entrega contigo: es la vía que tenemos hasta que alguien aporte el
+              contacto del punto.
+            </p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <Campo
+                id={`nombre-${m.need_id}`}
+                etiqueta="Tu nombre"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                placeholder="Como quieres que te llamen"
+              />
+              <Campo
+                id={`contacto-${m.need_id}`}
+                etiqueta="Tu teléfono o WhatsApp"
+                type="tel"
+                ayuda="Sin un contacto no hay forma de avisarte."
+                value={contacto}
+                onChange={(e) => setContacto(e.target.value)}
+                placeholder="300 000 0000"
+              />
+            </div>
+          </div>
+        )}
+
         <div className="mt-5 flex flex-col gap-2.5 sm:flex-row">
           {enlace ? (
             <Boton onClick={coordinar} cargando={enviando} tamano="grande" className="w-full sm:w-auto">
@@ -681,10 +733,16 @@ function TarjetaCoincidencia({
               Coordinar entrega por WhatsApp
             </Boton>
           ) : (
-            <Aviso tono="info">
-              Este punto no tiene WhatsApp registrado.{' '}
-              {m.telefono ? 'Llama al teléfono que aparece abajo.' : 'Revisa la ficha del punto.'}
-            </Aviso>
+            <Boton
+              onClick={coordinar}
+              cargando={enviando}
+              disabled={contacto.trim().length < 7}
+              tamano="grande"
+              className="w-full sm:w-auto"
+            >
+              <Send aria-hidden="true" className="h-4 w-4" />
+              Registrar mi donación para este punto
+            </Boton>
           )}
 
           {m.telefono && (
@@ -695,11 +753,18 @@ function TarjetaCoincidencia({
               </Boton>
             </a>
           )}
+
+          <Link to={`/puntos/${m.point_slug}`} className="w-full sm:w-auto">
+            <Boton variante="secundario" tamano="grande" className="w-full">
+              Ver la ficha del punto
+            </Boton>
+          </Link>
         </div>
 
         <p className="text-muted mt-3 text-[0.8125rem] leading-snug">
-          El mensaje va prellenado con qué tienes, cuánto y desde dónde, para que el punto pueda
-          responderte de una sola vez.
+          {enlace
+            ? 'El mensaje va prellenado con qué tienes, cuánto y desde dónde, para que el punto pueda responderte de una sola vez.'
+            : '¿Conoces el teléfono de este punto? Agrégalo desde su ficha y el siguiente donante podrá escribirle directo.'}
         </p>
       </div>
     </motion.article>

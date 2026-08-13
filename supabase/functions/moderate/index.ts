@@ -315,7 +315,9 @@ async function editarPunto(
   if ('nombre' in datos) asignar('nombre', texto(datos.nombre, { min: 4, max: 160, campo: 'el nombre' }))
   if ('ciudad' in datos) asignar('ciudad', texto(datos.ciudad, { min: 2, max: 90, campo: 'la ciudad' }))
   if ('direccion' in datos) asignar('direccion', texto(datos.direccion, { max: 200, campo: 'la dirección' }))
-  if ('descripcion' in datos) asignar('descripcion', texto(datos.descripcion, { max: 800, campo: 'la descripción' }))
+  if ('descripcion' in datos) {
+    asignar('descripcion', texto(datos.descripcion, { max: 800, campo: 'la descripción', multilinea: true }))
+  }
   if ('organizacion' in datos) asignar('organizacion', texto(datos.organizacion, { max: 160, campo: 'la organización' }))
   if ('horario' in datos) asignar('horario', texto(datos.horario, { max: 200, campo: 'el horario' }))
   if ('telefono' in datos) asignar('telefono', telefono(datos.telefono))

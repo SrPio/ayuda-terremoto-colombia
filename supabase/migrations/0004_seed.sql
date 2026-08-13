@@ -79,7 +79,7 @@ insert into public.need_categories (slug, nombre, emoji, unidad_sugerida, descri
   ('aseo-personal',           'Aseo personal',            '🧼', 'kits',     'Jabón, cepillos, crema dental, papel higiénico, toallas higiénicas.', 50),
   ('cobijas-colchonetas',     'Cobijas y colchonetas',    '🛏️', 'unidades', 'Cobijas, mantas, colchonetas y toldillos para alojamientos temporales.', 60),
   ('herramientas-epp',        'Herramientas y protección','🦺', 'unidades', 'Guantes de construcción, gafas de seguridad, cascos, palas, linternas.', 70),
-  ('panales-bebe',            'Pañales y bebé',           '🍼', 'paquetes', 'Pañales, leche de formula, teteros, ropa de bebé.', 80),
+  ('panales-bebe',            'Pañales y bebé',           '🍼', 'paquetes', 'Pañales, leche de fórmula, teteros, ropa de bebé.', 80),
   ('agua-tanques',            'Agua en tanques',          '🚰', 'tanques',  'Tanques, canecas y contenedores para almacenar agua.', 90),
   ('mascotas',                'Alimento para mascotas',   '🐾', 'bultos',   'Concentrado, guacales, correas. Las mascotas también quedaron damnificadas.', 100),
   ('ropa',                    'Ropa',                     '👕', 'bolsas',   'Ropa en buen estado y limpia. Varios puntos ya no la reciben: confirmar antes.', 110);

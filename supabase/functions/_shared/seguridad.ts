@@ -155,7 +155,7 @@ const DIACRITICOS = new RegExp('[\u0300-\u036F]', 'g')
 
 export function texto(
   valor: unknown,
-  { min = 0, max = 500, requerido = false, campo = 'campo' } = {},
+  { min = 0, max = 500, requerido = false, campo = 'campo', multilinea = false } = {},
 ): string | null {
   if (valor === null || valor === undefined || valor === '') {
     if (requerido) throw new ErrorValidacion(`Falta ${campo}`)
@@ -164,7 +164,20 @@ export function texto(
   if (typeof valor !== 'string') throw new ErrorValidacion(`${campo} debe ser texto`)
 
   // Se neutralizan caracteres de control, que solo aparecen en payloads armados.
-  const limpio = valor.replace(CONTROL, '').trim().replace(/\s+/g, ' ')
+  //
+  // Con `multilinea` se parte primero por saltos de línea y se limpia cada línea
+  // por separado, de modo que los saltos sobreviven al filtro. Los campos de
+  // texto largo —el mensaje al punto, el comentario de un reporte, la
+  // descripción de un sitio— se escriben en párrafos, y aplanarlos deja a la
+  // moderación leyendo un muro de texto.
+  const limpio = multilinea
+    ? valor
+        .split('\n')
+        .map((linea) => linea.replace(CONTROL, '').replace(/[ \t]+/g, ' ').trim())
+        .join('\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim()
+    : valor.replace(CONTROL, '').trim().replace(/\s+/g, ' ')
 
   if (limpio.length === 0) {
     if (requerido) throw new ErrorValidacion(`Falta ${campo}`)

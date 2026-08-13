@@ -215,7 +215,7 @@ async function crearPunto(
       department_code: departamento,
       ciudad,
       direccion: texto(datos.direccion, { max: 200, campo: 'la dirección' }),
-      descripcion: texto(datos.descripcion, { max: 800, campo: 'la descripción' }),
+      descripcion: texto(datos.descripcion, { max: 800, campo: 'la descripción', multilinea: true }),
       organizacion: texto(datos.organizacion, { max: 160, campo: 'la organización' }),
       horario: texto(datos.horario, { max: 200, campo: 'el horario' }),
       telefono: telefono(datos.telefono),
@@ -268,6 +268,7 @@ async function solicitarCambio(
     min: 10,
     max: 600,
     campo: 'el motivo',
+    multilinea: true,
   })!
 
   const { data: punto } = await admin
@@ -351,7 +352,7 @@ async function crearReporte(
   const { error: err } = await admin.from('point_reports').insert({
     point_id: pointId,
     motivo,
-    comentario: texto(datos.comentario, { max: 600, campo: 'el comentario' }),
+    comentario: texto(datos.comentario, { max: 600, campo: 'el comentario', multilinea: true }),
     submitter_contacto: texto(datos.submitter_contacto, { max: 160, campo: 'tu contacto' }),
     submitter_ip_hash: ipHash,
   })
@@ -415,7 +416,7 @@ async function registrarOferta(
       transporte_disponible: booleano(datos.transporte_disponible),
       nombre_contacto: texto(datos.nombre_contacto, { max: 120, campo: 'tu nombre' }),
       telefono: telefono(datos.telefono),
-      mensaje: texto(datos.mensaje, { max: 600, campo: 'el mensaje' }),
+      mensaje: texto(datos.mensaje, { max: 600, campo: 'el mensaje', multilinea: true }),
       matched_point_id: matched,
       submitter_ip_hash: ipHash,
       status: matched ? 'coordinada' : 'abierta',
