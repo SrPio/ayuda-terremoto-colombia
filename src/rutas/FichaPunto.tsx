@@ -302,6 +302,15 @@ export default function FichaPunto() {
                       {punto.ciudad}
                       {punto.departments?.nombre ? `, ${punto.departments.nombre}` : ''}
                     </span>
+                    {punto.precision_ubicacion !== 'exacta' && (
+                      <span
+                        className="mt-1.5 block font-mono text-[0.6875rem] leading-snug tracking-wide uppercase"
+                        style={{ color: 'var(--color-alta)' }}
+                      >
+                        El marcador del mapa está al centro del municipio, no en la puerta.
+                        {punto.direccion ? ' Guíate por la dirección.' : ''}
+                      </span>
+                    )}
                   </dd>
                 </div>
               </div>

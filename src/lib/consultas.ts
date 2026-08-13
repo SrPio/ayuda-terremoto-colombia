@@ -20,8 +20,8 @@ import type {
 
 const SELECCION_PUNTO = `
   id, slug, nombre, department_code, ciudad, direccion, descripcion, organizacion,
-  horario, telefono, whatsapp, email, lat, lng, acepta_transporte_grande,
-  fuente_url, status, verificado, created_at, updated_at,
+  horario, telefono, whatsapp, email, lat, lng, precision_ubicacion,
+  acepta_transporte_grande, fuente_url, status, verificado, created_at, updated_at,
   departments ( nombre, region, afectado ),
   point_needs ( id, category_slug, cantidad_solicitada, cantidad_cubierta, unidad, urgencia, notas, activa )
 `

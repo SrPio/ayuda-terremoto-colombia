@@ -291,6 +291,12 @@
   font-size: 0.75rem;
 }
 
+/* Ubicación aproximada al centro del municipio: el marcador se dibuja hueco y
+   punteado para que la forma misma diga "por aquí", no "exactamente acá". */
+.marcador-aproximado {
+  backdrop-filter: saturate(0.6);
+}
+
 .cluster-acopio {
   display: grid;
   place-items: center;

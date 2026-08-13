@@ -63,6 +63,8 @@ export interface Punto {
   email: string | null
   lat: number | null
   lng: number | null
+  /** 'exacta' = la coordenada es la puerta. 'ciudad' = es el centro del municipio. */
+  precision_ubicacion: 'exacta' | 'ciudad'
   acepta_transporte_grande: boolean
   fuente_url: string | null
   status: EstadoPunto

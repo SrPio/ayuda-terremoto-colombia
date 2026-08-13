@@ -324,6 +324,11 @@ async function editarPunto(
   if ('fuente_url' in datos) asignar('fuente_url', texto(datos.fuente_url, { max: 400, campo: 'la fuente' }))
   if ('lat' in datos) asignar('lat', numero(datos.lat, { min: -5, max: 14, campo: 'la latitud' }))
   if ('lng' in datos) asignar('lng', numero(datos.lng, { min: -82, max: -66, campo: 'la longitud' }))
+  // Si un moderador escribe coordenadas a mano, es porque las verificó: dejan de
+  // ser el centro de la ciudad y el mapa puede mostrarlas como exactas.
+  if ('lat' in datos && 'lng' in datos && campos.lat !== null && campos.lng !== null) {
+    asignar('precision_ubicacion', 'exacta')
+  }
   if ('acepta_transporte_grande' in datos) {
     asignar('acepta_transporte_grande', booleano(datos.acepta_transporte_grande))
   }

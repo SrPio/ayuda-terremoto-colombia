@@ -21,15 +21,25 @@ import type { Punto, Urgencia } from '@/lib/tipos'
 
 const CENTRO_COLOMBIA: [number, number] = [4.6, -74.3]
 
-/** Marcador circular con el color de la urgencia más apremiante del punto. */
-function iconoPunto(urgencia: Urgencia | null, emoji: string) {
+/**
+ * Marcador con el color de la urgencia más apremiante del punto.
+ *
+ * Los puntos cuya coordenada es solo el centro del municipio se dibujan con
+ * borde punteado y relleno translúcido: la forma misma dice "por aquí, no
+ * exactamente acá". Dibujarlos idénticos a los verificados sería afirmar una
+ * precisión que no tenemos.
+ */
+function iconoPunto(urgencia: Urgencia | null, aproximado: boolean) {
   const color = urgencia ? URGENCIA_COLOR[urgencia] : 'var(--color-line-fuerte)'
+  const estilo = aproximado
+    ? `background:transparent;border-color:${color};border-style:dashed;box-shadow:none`
+    : `background:${color}`
   return L.divIcon({
     className: '',
-    html: `<div class="marcador-acopio" style="width:28px;height:28px;background:${color}">${emoji}</div>`,
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-    popupAnchor: [0, -16],
+    html: `<div class="marcador-acopio${aproximado ? ' marcador-aproximado' : ''}" style="width:26px;height:26px;${estilo}"></div>`,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+    popupAnchor: [0, -15],
   })
 }
 
@@ -65,9 +75,11 @@ function Marcadores({ puntos }: { puntos: Punto[] }) {
           )
         : null
 
+      const aproximado = punto.precision_ubicacion !== 'exacta'
+
       const marcador = L.marker([punto.lat, punto.lng], {
-        icon: iconoPunto(urgencia, activas.length ? '' : '·'),
-        title: punto.nombre,
+        icon: iconoPunto(urgencia, aproximado),
+        title: aproximado ? `${punto.nombre} (ubicación aproximada)` : punto.nombre,
         alt: punto.nombre,
       })
 
@@ -88,6 +100,13 @@ function Marcadores({ puntos }: { puntos: Punto[] }) {
            ${
              necesidades
                ? `<div style="font-size:12px;margin-top:8px;text-transform:capitalize">${necesidades}</div>`
+               : ''
+           }
+           ${
+             aproximado
+               ? `<div style="font-size:11px;margin-top:8px;color:var(--color-alta);line-height:1.35">Ubicación aproximada al centro del municipio.${
+                   punto.direccion ? ' Guíate por la dirección de la ficha.' : ''
+                 }</div>`
                : ''
            }
            <a href="/puntos/${escapar(punto.slug)}"
@@ -129,6 +148,7 @@ export default function Mapa({ puntos, altura = 460 }: { puntos: Punto[]; altura
     [puntos],
   )
   const sinCoordenadas = puntos.length - conCoordenadas.length
+  const aproximados = conCoordenadas.filter((p) => p.precision_ubicacion !== 'exacta').length
 
   return (
     <div className="panel overflow-hidden">
@@ -147,11 +167,25 @@ export default function Mapa({ puntos, altura = 460 }: { puntos: Punto[]; altura
         <Marcadores puntos={conCoordenadas} />
       </MapContainer>
 
-      {sinCoordenadas > 0 && (
-        <p className="border-line text-muted border-t px-4 py-2.5 font-mono text-[0.6875rem] tracking-wide uppercase">
-          {sinCoordenadas} {sinCoordenadas === 1 ? 'punto' : 'puntos'} sin ubicación exacta ·{' '}
-          {sinCoordenadas === 1 ? 'aparece' : 'aparecen'} solo en la lista
-        </p>
+      {(aproximados > 0 || sinCoordenadas > 0) && (
+        <div className="border-line text-muted flex flex-col gap-1.5 border-t px-4 py-2.5 font-mono text-[0.6875rem] tracking-wide uppercase">
+          {aproximados > 0 && (
+            <p className="flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className="border-muted inline-block h-3 w-3 shrink-0 rounded-full border border-dashed"
+              />
+              {aproximados} con ubicación aproximada al centro del municipio · guíate por la
+              dirección
+            </p>
+          )}
+          {sinCoordenadas > 0 && (
+            <p>
+              {sinCoordenadas} {sinCoordenadas === 1 ? 'punto' : 'puntos'} sin coordenada ·{' '}
+              {sinCoordenadas === 1 ? 'aparece' : 'aparecen'} solo en la lista
+            </p>
+          )}
+        </div>
       )}
     </div>
   )
