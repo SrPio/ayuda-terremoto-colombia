@@ -105,11 +105,19 @@ function compararCoincidencias(a: Coincidencia, b: Coincidencia): number {
   return distanciaA - distanciaB
 }
 
+const AVISO_AVANCE = [
+  'Elige al menos una categoría para continuar.',
+  'Escribe una cantidad válida para cada categoría que elegiste.',
+  'Selecciona tu departamento y escribe tu ciudad o municipio.',
+  'Indica si tienes cómo transportar la donación.',
+] as const
+
 export default function Donar() {
   const [paso, setPaso] = useState(0)
   const [direccion, setDireccion] = useState(1)
   const [estado, setEstado] = useState<Estado>(INICIAL)
   const [buscando, setBuscando] = useState(false)
+  const [mostrarAvisoAvance, setMostrarAvisoAvance] = useState(false)
 
   const transicionPaso = usePasos(direccion)
   const { data: categorias } = useCategorias()
@@ -186,13 +194,19 @@ export default function Donar() {
   ][paso]
 
   const avanzar = () => {
+    if (!puedeAvanzar) {
+      setMostrarAvisoAvance(true)
+      return
+    }
     setDireccion(1)
+    setMostrarAvisoAvance(false)
     if (paso === PASOS.length - 1) setBuscando(true)
     else setPaso((p) => p + 1)
   }
 
   const retroceder = () => {
     setDireccion(-1)
+    setMostrarAvisoAvance(false)
     if (buscando) setBuscando(false)
     else setPaso((p) => Math.max(p - 1, 0))
   }
@@ -202,7 +216,14 @@ export default function Donar() {
     setPaso(0)
     setBuscando(false)
     setDireccion(-1)
+    setMostrarAvisoAvance(false)
   }
+
+  // El aviso solo tiene sentido mientras la razón que lo causó siga vigente:
+  // en cuanto la persona completa lo que falta, desaparece solo.
+  useEffect(() => {
+    if (puedeAvanzar) setMostrarAvisoAvance(false)
+  }, [puedeAvanzar])
 
   return (
     <div className="contenedor max-w-4xl py-10 lg:py-14">
@@ -512,13 +533,35 @@ export default function Donar() {
             </motion.div>
           </AnimatePresence>
 
-          <div className="border-line bg-mineral relative z-10 mt-8 flex items-center justify-between border-t pt-5">
-            <Boton variante="fantasma" onClick={retroceder} disabled={paso === 0}>
-              <ArrowLeft aria-hidden="true" className="h-4 w-4" />
-              Atrás
-            </Boton>
+          <AnimatePresence>
+            {mostrarAvisoAvance && !puedeAvanzar && (
+              <motion.div
+                initial={{ opacity: 0, y: -6, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: 'auto' }}
+                exit={{ opacity: 0, y: -6, height: 0 }}
+                className="mt-4 overflow-hidden"
+              >
+                <Aviso tono="atencion">{AVISO_AVANCE[paso]}</Aviso>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-            <Boton onClick={avanzar} disabled={!puedeAvanzar} tamano="grande">
+          <div className="border-line bg-mineral relative z-10 mt-8 flex items-center justify-between border-t pt-5">
+            {paso > 0 ? (
+              <Boton variante="fantasma" onClick={retroceder}>
+                <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+                Atrás
+              </Boton>
+            ) : (
+              <span aria-hidden="true" />
+            )}
+
+            <Boton
+              onClick={avanzar}
+              aria-disabled={!puedeAvanzar}
+              className={!puedeAvanzar ? 'cursor-not-allowed opacity-50' : ''}
+              tamano="grande"
+            >
               {paso === PASOS.length - 1 ? 'Buscar dónde hace falta' : 'Continuar'}
               <ArrowRight aria-hidden="true" className="h-4 w-4" />
             </Boton>

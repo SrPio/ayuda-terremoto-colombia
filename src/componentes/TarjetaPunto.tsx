@@ -34,14 +34,14 @@ export function TarjetaPunto({
   const color = activas.length > 0 ? URGENCIA_COLOR[urgenciaMaxima] : 'var(--color-line-fuerte)'
 
   return (
-    <motion.article variants={fila} className="panel relative overflow-hidden">
+    <motion.article variants={fila} className="panel relative h-full overflow-hidden">
       <span
         aria-hidden="true"
         className="absolute inset-y-0 left-0 w-[3px]"
         style={{ backgroundColor: color }}
       />
 
-      <div className="flex flex-col gap-3 p-4 pl-5 sm:p-5 sm:pl-6">
+      <div className="flex h-full flex-col gap-3 p-4 pl-5 sm:p-5 sm:pl-6">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
             <h3 className="display-ancho text-[1.0625rem] leading-tight font-bold">
@@ -69,43 +69,48 @@ export function TarjetaPunto({
           </div>
         </div>
 
-        {punto.organizacion && (
-          <p className="text-muted text-[0.8125rem]">{punto.organizacion}</p>
-        )}
+        {/* flex-1: reparte el espacio sobrante entre las tarjetas de una misma
+            fila, para que el pie con "Ver punto" siempre quede a la misma
+            altura sin importar cuánto texto tenga cada una arriba. */}
+        <div className="flex flex-1 flex-col gap-3">
+          {punto.organizacion && (
+            <p className="text-muted text-[0.8125rem]">{punto.organizacion}</p>
+          )}
 
-        {activas.length > 0 ? (
-          <ul className="flex flex-col gap-1.5">
-            {activas
-              .slice()
-              .sort((a, b) => URGENCIA_PESO[b.urgencia] - URGENCIA_PESO[a.urgencia])
-              .slice(0, 4)
-              .map((n) => {
-                const cat = categorias.get(n.category_slug)
-                return (
-                  <li key={n.id} className="flex flex-wrap items-baseline gap-x-2 text-[0.875rem]">
-                    <span aria-hidden="true">{cat?.emoji ?? '📦'}</span>
-                    <span className="font-medium">{cat?.nombre ?? n.category_slug}</span>
-                    <span
-                      data-cifra
-                      className="font-mono text-[0.75rem]"
-                      style={{ color: URGENCIA_COLOR[n.urgencia] }}
-                    >
-                      {faltanteTexto(n.cantidad_solicitada, n.cantidad_cubierta, n.unidad)}
-                    </span>
-                  </li>
-                )
-              })}
-            {activas.length > 4 && (
-              <li className="text-muted font-mono text-[0.75rem]">
-                y {activas.length - 4} más
-              </li>
-            )}
-          </ul>
-        ) : (
-          <p className="text-muted text-[0.875rem]">
-            Sin necesidades registradas. Confirma con el punto antes de llevar algo.
-          </p>
-        )}
+          {activas.length > 0 ? (
+            <ul className="flex flex-col gap-1.5">
+              {activas
+                .slice()
+                .sort((a, b) => URGENCIA_PESO[b.urgencia] - URGENCIA_PESO[a.urgencia])
+                .slice(0, 4)
+                .map((n) => {
+                  const cat = categorias.get(n.category_slug)
+                  return (
+                    <li key={n.id} className="flex flex-wrap items-baseline gap-x-2 text-[0.875rem]">
+                      <span aria-hidden="true">{cat?.emoji ?? '📦'}</span>
+                      <span className="font-medium">{cat?.nombre ?? n.category_slug}</span>
+                      <span
+                        data-cifra
+                        className="font-mono text-[0.75rem]"
+                        style={{ color: URGENCIA_COLOR[n.urgencia] }}
+                      >
+                        {faltanteTexto(n.cantidad_solicitada, n.cantidad_cubierta, n.unidad)}
+                      </span>
+                    </li>
+                  )
+                })}
+              {activas.length > 4 && (
+                <li className="text-muted font-mono text-[0.75rem]">
+                  y {activas.length - 4} más
+                </li>
+              )}
+            </ul>
+          ) : (
+            <p className="text-muted text-[0.875rem]">
+              Sin necesidades registradas. Confirma con el punto antes de llevar algo.
+            </p>
+          )}
+        </div>
 
         <div className="border-line mt-1 flex flex-wrap items-center justify-between gap-2 border-t pt-3">
           <SelloFrescura actualizado={punto.updated_at} />

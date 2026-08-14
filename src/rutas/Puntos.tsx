@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { List, Map as MapIcon, Search, SlidersHorizontal, Truck, X } from 'lucide-react'
+import { List, Map as MapIcon, Plus, Search, SlidersHorizontal, Truck, X } from 'lucide-react'
 import { TarjetaPunto } from '@/componentes/TarjetaPunto'
 import {
   Aviso,
@@ -101,15 +101,24 @@ export default function Puntos() {
 
   return (
     <div className="contenedor py-10 lg:py-14">
-      <header className="max-w-2xl">
-        <Eyebrow>Directorio</Eyebrow>
-        <h1 className="display-ancho mt-3 text-[2rem] leading-tight sm:text-[2.5rem]">
-          Puntos de acopio habilitados
-        </h1>
-        <p className="text-muted mt-3 text-[1.0625rem] leading-relaxed">
-          Filtra por departamento o por lo que quieres donar. Cada ficha muestra lo que ese punto
-          pide y cuándo se confirmó por última vez.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-2xl">
+          <Eyebrow>Directorio</Eyebrow>
+          <h1 className="display-ancho mt-3 text-[2rem] leading-tight sm:text-[2.5rem]">
+            Puntos de acopio habilitados
+          </h1>
+          <p className="text-muted mt-3 text-[1.0625rem] leading-relaxed">
+            Filtra por departamento o por lo que quieres donar. Cada ficha muestra lo que ese
+            punto pide y cuándo se confirmó por última vez.
+          </p>
+        </div>
+
+        <Link to="/agregar" className="shrink-0">
+          <Boton>
+            <Plus aria-hidden="true" className="h-4 w-4" />
+            Agregar punto
+          </Boton>
+        </Link>
       </header>
 
       {/* --- Barra de filtros ---------------------------------------------- */}
