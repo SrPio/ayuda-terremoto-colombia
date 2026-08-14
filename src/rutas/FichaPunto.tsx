@@ -35,7 +35,7 @@ import { MOTIVO_REPORTE_ETIQUETA, URGENCIA_PESO } from '@/lib/formato'
 import { useCascada } from '@/lib/movimiento'
 import { useCategorias, usePunto } from '@/lib/consultas'
 import { camposTrampaIniciales, enviarAporte } from '@/lib/api'
-import { enlaceMapa, enlaceWhatsapp, mensajePunto } from '@/lib/whatsapp'
+import { enlaceLlamada, enlaceMapa, enlaceWhatsapp, mensajePunto } from '@/lib/whatsapp'
 import type { Punto } from '@/lib/tipos'
 
 const Mapa = lazy(() => import('@/componentes/Mapa'))
@@ -331,7 +331,7 @@ export default function FichaPunto() {
                   <div>
                     <dt className="sr-only">Teléfono</dt>
                     <dd>
-                      <a href={`tel:${punto.telefono}`} className="hover:subrayado-signal font-mono text-[0.9375rem]">
+                      <a href={enlaceLlamada(punto.telefono) ?? undefined} className="hover:subrayado-signal font-mono text-[0.9375rem]">
                         {punto.telefono}
                       </a>
                     </dd>

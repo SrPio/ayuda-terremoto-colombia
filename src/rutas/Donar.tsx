@@ -36,7 +36,7 @@ import {
   type ItemBusquedaMatch,
 } from '@/lib/consultas'
 import { camposTrampaIniciales, enviarAporte } from '@/lib/api'
-import { enlaceMapa, enlaceWhatsapp, mensajeCoordinacion } from '@/lib/whatsapp'
+import { enlaceLlamada, enlaceMapa, enlaceWhatsapp, mensajeCoordinacion } from '@/lib/whatsapp'
 import type { Categoria, Coincidencia } from '@/lib/tipos'
 
 // ============================================================================
@@ -850,7 +850,7 @@ function TarjetaCoincidencia({
           )}
 
           {m.telefono && (
-            <a href={`tel:${m.telefono}`} className="w-full sm:w-auto">
+            <a href={enlaceLlamada(m.telefono) ?? undefined} className="w-full sm:w-auto">
               <Boton variante="secundario" tamano="grande" className="w-full">
                 <Phone aria-hidden="true" className="h-4 w-4" />
                 {m.telefono}

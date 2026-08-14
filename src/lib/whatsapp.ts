@@ -12,10 +12,20 @@ import type { Coincidencia, Punto } from './tipos'
 // responder en un solo mensaje: qué, cuánto, desde dónde y si hay transporte.
 // ============================================================================
 
+/**
+ * Algunos puntos publican dos números separados por "/" (p. ej. dos líneas de
+ * un hospital). Un enlace de teléfono o WhatsApp solo puede apuntar a uno, así
+ * que nos quedamos con el primero: concatenar los dígitos de ambos marcaría un
+ * número que no existe.
+ */
+function primerNumero(numero: string): string {
+  return numero.split('/')[0].trim()
+}
+
 /** Normaliza a formato internacional colombiano para wa.me. */
 export function telefonoWhatsapp(numero: string | null | undefined): string | null {
   if (!numero) return null
-  const digitos = numero.replace(/\D/g, '')
+  const digitos = primerNumero(numero).replace(/\D/g, '')
   if (digitos.length === 0) return null
 
   // Celular colombiano de 10 dígitos → se le agrega el indicativo 57.
@@ -30,6 +40,13 @@ export function enlaceWhatsapp(numero: string | null | undefined, mensaje: strin
   const tel = telefonoWhatsapp(numero)
   if (!tel) return null
   return `https://wa.me/${tel}?text=${encodeURIComponent(mensaje)}`
+}
+
+/** Enlace `tel:` a partir del campo de teléfono, quedándose con el primer número si hay varios. */
+export function enlaceLlamada(numero: string | null | undefined): string | null {
+  if (!numero) return null
+  const limpio = primerNumero(numero)
+  return limpio ? `tel:${limpio}` : null
 }
 
 export interface DatosOferta {
